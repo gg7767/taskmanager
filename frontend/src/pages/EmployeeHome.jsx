@@ -17,8 +17,8 @@ const EmployeeHome = () => {
       .then((response) => {
         setPendingTasks(response.data);
       })
-      .catch((err) => {
-        console.log(err);
+      .catch((error) => {
+        console.log(error);
       });
 
     axios
