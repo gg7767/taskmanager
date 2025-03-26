@@ -3,7 +3,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Employees from "./Employees"
 import TaskList from "./TaskList";
-import {useParams, redirect} from "react-router-dom";
+import {useParams} from "react-router-dom";
 
 const ManagerHome = () => {
   const [value, setValue] = useState(0);

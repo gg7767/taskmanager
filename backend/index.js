@@ -5,6 +5,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const { default: mongoose } = require("mongoose");
 const User = require("./model/User");
+const session = require('express-session');
 const Task = require("./model/Task");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
@@ -19,6 +20,17 @@ app.use(
   })
 );
 
+app.use(session({
+  secret: 'abcd',  // use a secure random string
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // use true in production with HTTPS
+    httpOnly: true,
+    sameSite: 'lax' // or 'none' if frontend and backend are on different domains with HTTPS
+  }
+}));
+
 app.use(express.json());
 
 app.use(cookieParser());
@@ -32,9 +44,9 @@ app.post("/register", async (req, res) => {
   try {
 
     const { firstName, lastName, email, password, role } = req.body;
-    console.log(firstName)
-    console.log(lastName)
-    console.log(role)
+    // console.log(firstName)
+    // console.log(lastName)
+    // console.log(role)
     await User.create({
       firstName,
       lastName,
@@ -55,6 +67,7 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const userDoc = await User.findOne({ email });
     if (userDoc) {
+      console.log(userDoc)
       const passOk = bcrypt.compareSync(password, userDoc.password);
       if (passOk) {
         jwt.sign(

@@ -1,11 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import {useContext} from 'react'
-import {UserContext} from '../UserContext'
+
+
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+
 
 
 const Header = () => {
-  const {user} = useContext(UserContext)
+  
   return (
     <div>
       <header className="flex justify-between">
@@ -26,7 +28,7 @@ const Header = () => {
           </svg>
           <span className="text-lg font-bold">Task Manager</span>
         </Link>
-        <Link to={user? '/account':'/login'} className = "flex items-center border border-gray-200 rounded-full p-1.5 shadow gap-1">
+        {/* <Link to={user? '/account':'/login'} className = "flex items-center border border-gray-200 rounded-full p-1.5 shadow gap-1">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -44,7 +46,19 @@ const Header = () => {
               {user.firstName}
             </div>
           )}
-        </Link>
+        </Link> */}
+        <SignedOut>
+          <SignInButton 
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300"
+          />
+        </SignedOut>
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" appearance={{
+            elements: {
+              avatarBox: "w-9 h-9" // Increased from default size
+            }
+          }} />
+         </SignedIn>
       </header>
     </div>
   )
