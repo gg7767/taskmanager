@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 
@@ -7,14 +7,6 @@ const useUserRole = () => {
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const hasCheckedRole = useRef(false);
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -24,10 +16,6 @@ const useUserRole = () => {
       }
 
       // Only check role if we haven't already
-      if (hasCheckedRole.current) {
-        setIsLoading(false);
-        return;
-      }
 
       try {
         console.log('Checking user role for userId:', userId);
@@ -37,25 +25,24 @@ const useUserRole = () => {
           }
         });
         
-        if (isMounted.current) {
+        
           console.log('Profile response:', response.data);
           if (response.data) {
             // Set the role (even if null)
             setUserRole(response.data.role);
             console.log('Set user role to:', response.data.role);
-            hasCheckedRole.current = true;
           }
-        }
+        
       } catch (err) {
-        if (isMounted.current) {
+        
           console.error('Error checking role:', err);
           setError(err.message);
           setUserRole(null);
-        }
+        
       } finally {
-        if (isMounted.current) {
-          setIsLoading(false);
-        }
+        
+        setIsLoading(false);
+        
       }
     };
 
@@ -68,7 +55,7 @@ const useUserRole = () => {
       const response = await axios.put(`/updateEmployee/${userId}`, { role: newRole });
       console.log('Update response:', response.data);
       
-      if (response.data && isMounted.current) {
+      if (response.data) {
         setUserRole(newRole);
         localStorage.setItem('userRole', newRole);
         console.log('Role updated successfully');
@@ -78,9 +65,9 @@ const useUserRole = () => {
       return false;
     } catch (err) {
       console.error('Error updating role:', err);
-      if (isMounted.current) {
-        setError(err.message);
-      }
+      
+      setError(err.message);
+      
       return false;
     }
   };
@@ -89,3 +76,5 @@ const useUserRole = () => {
 };
 
 export default useUserRole; 
+
+

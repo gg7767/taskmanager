@@ -8,8 +8,6 @@ import TaskForm from './pages/TaskForm';
 import RoleSelection from './pages/RoleSelection';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
-import { Amplify } from 'aws-amplify';
-import awsExports from './aws-exports';
 import '@aws-amplify/ui-react/styles.css';
 import axios from "axios";
 import LandingPage from "./pages/LandingPage";
@@ -17,13 +15,6 @@ import { SignIn } from "@clerk/clerk-react";
 
 axios.defaults.baseURL = 'http://localhost:4000';
 axios.defaults.withCredentials = true;
-Amplify.configure({
-  Auth: {
-    region: awsExports.REGION,
-    userPoolId: awsExports.USER_POOL_ID,
-    userPoolWebClientId: awsExports.USER_POOL_APP_CLIENT_ID
-}
-})
 
 function App() {
   return (

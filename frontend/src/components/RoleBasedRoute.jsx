@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import useUserRole from '../hooks/useUserRole';
 
 const RoleBasedRoute = ({ children, allowedRoles }) => {
-  const location = useLocation();
   const { userRole, isLoading } = useUserRole();
-
+  console.log(userRole)
+  console.log(isLoading)
   useEffect(() => {
     if (!isLoading && userRole && !allowedRoles.includes(userRole)) {
       window.location.href = `/${userRole}`;

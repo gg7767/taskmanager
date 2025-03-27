@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useUserRole from '../hooks/useUserRole';
 
@@ -7,22 +7,15 @@ const RoleSelection = () => {
   const { updateUserRole, userRole, isLoading: isRoleLoading } = useUserRole();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
-  const hasRedirected = useRef(false);
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   // Redirect if user already has a role
   useEffect(() => {
-    if (userRole && !hasRedirected.current && !isRoleLoading && isMounted.current) {
+    if (userRole && !isRoleLoading) {
       console.log('User already has role:', userRole);
-      hasRedirected.current = true;
+      
       // Use window.location for a full page reload
-      window.location.href = `/${userRole}`;
+      // window.location.href = `/${userRole}`;
+      navigate(`/${userRole}`)
     }
   }, [userRole, isRoleLoading]);
 
@@ -37,25 +30,26 @@ const RoleSelection = () => {
       const success = await updateUserRole(role);
       console.log('Role update success:', success);
       
-      if (success && isMounted.current) {
+      if (success) {
         console.log('Role updated successfully, navigating to:', `/${role}`);
         // Use window.location for a full page reload
-        window.location.href = `/${role}`;
+        // window.location.href = `/${role}`;
+        navigate(`/${role}`)
       } else {
         console.error('Role update failed');
-        if (isMounted.current) {
+        
           setError('Failed to update role. Please try again.');
-        }
+        
       }
     } catch (err) {
       console.error('Error in handleRoleSelect:', err);
-      if (isMounted.current) {
+      
         setError(err.message || 'An error occurred. Please try again.');
-      }
+      
     } finally {
-      if (isMounted.current) {
+      
         setIsUpdating(false);
-      }
+      
     }
   };
 

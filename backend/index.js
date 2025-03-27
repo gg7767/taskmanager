@@ -305,32 +305,32 @@ app.put("/updateEmployee/:clerkId", async (req, res) => {
   }
 });
 
-app.put("/updateEmployee/:id", async (req, res) => {
-  const { id } = req.params;
-  const updatedEmployeeData = req.body;
+// app.put("/updateEmployee/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const updatedEmployeeData = req.body;
   
-  // Check if there is a password field in the request body
-  if (updatedEmployeeData.password) {
-    // Hash the password before updating
-    updatedEmployeeData.password = bcrypt.hashSync(updatedEmployeeData.password, 10);
-  }
+//   // Check if there is a password field in the request body
+//   if (updatedEmployeeData.password) {
+//     // Hash the password before updating
+//     updatedEmployeeData.password = bcrypt.hashSync(updatedEmployeeData.password, 10);
+//   }
 
-  try {
-    // Find the employee by their ID and update their data
-    const updatedEmployee = await User.findByIdAndUpdate(id, updatedEmployeeData, {
-      new: true, // Return the updated employee data
-    });
+//   try {
+//     // Find the employee by their ID and update their data
+//     const updatedEmployee = await User.findByIdAndUpdate(id, updatedEmployeeData, {
+//       new: true, // Return the updated employee data
+//     });
 
-    if (updatedEmployee) {
-      res.json(updatedEmployee);
-    } else {
-      res.status(404).json({ message: "Employee not found" });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+//     if (updatedEmployee) {
+//       res.json(updatedEmployee);
+//     } else {
+//       res.status(404).json({ message: "Employee not found" });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
 
 app.listen(4000, () => {
   console.log("Server running on http://localhost:4000");
