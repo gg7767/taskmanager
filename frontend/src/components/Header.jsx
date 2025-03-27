@@ -1,12 +1,17 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-
-
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
-
-
+import React, { useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/clerk-react";
 
 const Header = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isSignedIn && location.pathname !== '/role-selection') {
+      navigate('/role-selection');
+    }
+  }, [isSignedIn, navigate, location.pathname]);
   
   return (
     <div>
@@ -48,7 +53,8 @@ const Header = () => {
           )}
         </Link> */}
         <SignedOut>
-          <SignInButton 
+          <SignInButton
+            mode="modal"
             className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300"
           />
         </SignedOut>

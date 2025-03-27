@@ -1,4 +1,5 @@
 console.log("Starting backend server...");
+const clerkMiddleware = require('@clerk/express')
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -11,6 +12,7 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const datefns = require("date-fns");
 const jwtSecret = "fsjflsakdjiwoejflsdkjfow4u938247509weuqr98q23utowqig";
+
 require("dotenv").config();
 
 app.use(
@@ -30,6 +32,8 @@ app.use(session({
     sameSite: 'lax' // or 'none' if frontend and backend are on different domains with HTTPS
   }
 }));
+
+app.use(clerkMiddleware.clerkMiddleware())
 
 app.use(express.json());
 
@@ -90,16 +94,34 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/profile", (req, res) => {
-  const { token } = req.cookies;
-  if (token) {
-    jwt.verify(token, jwtSecret, {}, async (error, userDoc) => {
-      if (error) throw error;
-      const { firstName, lastName, email, _id, role, pendingTasks, completedTasks } = await User.findById(userDoc.id);
-      res.json({ firstName, lastName, email, _id, role, pendingTasks, completedTasks });
-    });
-  } else {
-    res.json(null);
+app.get("/profile", async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    console.log('Profile request for userId:', userId);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID not provided' });
+    }
+
+    // First try to find existing user
+    let user = await User.findOne({ clerkId: userId });
+    console.log('Existing user:', user);
+
+    // If user doesn't exist, create new user
+    if (!user) {
+      user = await User.create({
+        clerkId: userId,
+        role: null,
+        pendingTasks: 0,
+        completedTasks: 0
+      });
+      console.log('Created new user:', user);
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error in /profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -260,16 +282,17 @@ app.get("/employee/:id", async (req, res) => {
   }
 });
 
-
-app.put("/updateEmployee/:id", async (req, res) => {
-  const { id } = req.params;
+app.put("/updateEmployee/:clerkId", async (req, res) => {
+  const { clerkId } = req.params;
   const updatedEmployeeData = req.body;
   
   try {
-    // Find the employee by their ID and update their data
-    const updatedEmployee = await User.findByIdAndUpdate(id, updatedEmployeeData, {
-      new: true, // Return the updated employee data
-    });
+    // Find and update the user by clerkId
+    const updatedEmployee = await User.findOneAndUpdate(
+      { clerkId: clerkId }, 
+      updatedEmployeeData,
+      { new: true }
+    );
 
     if (updatedEmployee) {
       res.json(updatedEmployee);

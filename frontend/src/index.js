@@ -20,7 +20,6 @@ root.render(
   <React.StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <BrowserRouter>
-      
         <App />
        <ToastContainer />
       </BrowserRouter>
