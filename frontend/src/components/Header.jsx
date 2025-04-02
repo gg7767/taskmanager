@@ -1,19 +1,32 @@
-import React, { useEffect } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/clerk-react";
+import useUserRole from '../hooks/useUserRole';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSignedIn } = useAuth();
+  const { userDb, isLoading } = useUserRole();
 
   useEffect(() => {
-    if (isSignedIn && location.pathname !== '/role-selection') {
-      navigate('/role-selection');
+    if (
+      isSignedIn &&
+      !isLoading &&
+      userDb &&
+      userDb.role === undefined &&
+      location.pathname !== "/role-selection"
+    ) {
+      navigate("/role-selection");
     }
-  }, [isSignedIn, navigate, location.pathname]);
+  }, [isSignedIn, isLoading, userDb?.role, location.pathname, navigate]);
+  
+
+
   
   return (
+    
     <div>
       <header className="flex justify-between">
         <Link to={'/'} className="flex items-center gap-1">
@@ -67,7 +80,7 @@ const Header = () => {
          </SignedIn>
       </header>
     </div>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

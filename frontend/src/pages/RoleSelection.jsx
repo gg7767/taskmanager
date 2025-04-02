@@ -1,122 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useUserRole from '../hooks/useUserRole';
+
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
+import useUserRole from "../hooks/useUserRole";
+import axios from "axios";
 
 const RoleSelection = () => {
   const navigate = useNavigate();
-  const { updateUserRole, userRole, isLoading: isRoleLoading } = useUserRole();
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState(null);
+  const { user } = useUser();
+  const { userDb, isLoading, refetchUser } = useUserRole();
+  const [selectedRole, setSelectedRole] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Redirect if user already has a role
   useEffect(() => {
-    if (userRole && !isRoleLoading) {
-      console.log('User already has role:', userRole);
-      
-      // Use window.location for a full page reload
-      // window.location.href = `/${userRole}`;
-      navigate(`/${userRole}`)
+    if (!isLoading && userDb?.role) {
+      navigate(`/${userDb.role}`);
     }
-  }, [userRole, isRoleLoading]);
+  }, [isLoading, userDb, navigate]);
 
-  const handleRoleSelect = async (role) => {
-    if (isUpdating) return;
-    
+  const handleRoleSelect = async () => {
+    if (!selectedRole || !user) return;
+
+    setLoading(true);
     try {
-      console.log('Starting role selection for:', role);
-      setIsUpdating(true);
-      setError(null);
-      
-      const success = await updateUserRole(role);
-      console.log('Role update success:', success);
-      
-      if (success) {
-        console.log('Role updated successfully, navigating to:', `/${role}`);
-        // Use window.location for a full page reload
-        // window.location.href = `/${role}`;
-        navigate(`/${role}`)
-      } else {
-        console.error('Role update failed');
-        
-          setError('Failed to update role. Please try again.');
-        
-      }
+      await axios.put(`/api/users/${user.id}`, { role: selectedRole });
+      await refetchUser();
+      navigate(`/${selectedRole}`);
     } catch (err) {
-      console.error('Error in handleRoleSelect:', err);
-      
-        setError(err.message || 'An error occurred. Please try again.');
-      
+      console.error("Error updating role:", err);
     } finally {
-      
-        setIsUpdating(false);
-      
+      setLoading(false);
     }
   };
 
-  // Show loading state only while initially checking role
-  if (isRoleLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+
       </div>
     );
   }
 
-  // If user already has a role, show redirecting state
-  if (userRole) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirecting to your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
-  // Show role selection if no role is set
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Select Your Role
-          </h2>
+    <div className="flex justify-center items-center h-screen bg-gray-50 transition-opacity duration-500">
+      <div className="p-8 bg-white rounded-2xl shadow-lg text-center w-80">
+        <h1 className="text-2xl font-bold mb-6">Select Your Role</h1>
+        <div className="flex flex-col gap-4">
+          {["employee", "manager", "leadership"].map((role) => (
+            <button
+              key={role}
+              className={`px-6 py-2 rounded-full border-2 font-medium capitalize transition-all duration-300 ${
+                selectedRole === role
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                  : "bg-white text-gray-800 hover:bg-gray-100"
+              }`}
+              onClick={() => setSelectedRole(role)}
+            >
+              {role}
+            </button>
+          ))}
         </div>
-        {error && (
-          <div className="text-red-500 text-center text-sm">
-            {error}
-          </div>
-        )}
-        <div className="mt-8 space-y-4">
-          <button
-            onClick={() => handleRoleSelect('employee')}
-            disabled={isUpdating}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {isUpdating ? 'Updating...' : 'Employee'}
-          </button>
-          <button
-            onClick={() => handleRoleSelect('manager')}
-            disabled={isUpdating}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-          >
-            {isUpdating ? 'Updating...' : 'Manager'}
-          </button>
-          <button
-            onClick={() => handleRoleSelect('leadership')}
-            disabled={isUpdating}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-          >
-            {isUpdating ? 'Updating...' : 'Leadership'}
-          </button>
-        </div>
+        <button
+          className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-300 disabled:opacity-50"
+          onClick={handleRoleSelect}
+          disabled={!selectedRole || loading}
+        >
+          {loading ? "Assigning..." : "Confirm Role"}
+        </button>
+
       </div>
     </div>
   );
 };
 
-export default RoleSelection; 
+
+export default RoleSelection;
+

@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import { format } from "date-fns";
 import { Box, Stack, Paper, Button } from "@mui/material";
 import {toast} from 'react-toastify'
@@ -9,16 +9,16 @@ import { useNavigate } from "react-router-dom";
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const navigate = useNavigate();
-  useEffect(() => {
-    axios
-      .get("/allTasks")
-      .then((response) => {
-        setTasks(response.data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }, []);
+  // useEffect(() => {
+  //   axios
+  //     .get("/allTasks")
+  //     .then((response) => {
+  //       setTasks(response.data);
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // }, []);
 
   function handleDelete(id) {
     setTasks(tasks.filter((task)=>task._id!==id))

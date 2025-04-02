@@ -3,15 +3,12 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Employees from "./Employees"
 import TaskList from "./TaskList";
-import {useParams} from "react-router-dom";
 
 const ManagerHome = () => {
   const [value, setValue] = useState(0);
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  let {page} = useParams();
-  console.log(page);
   return (
     <div>
       <div className="text-3xl font-semibold text-center my-4 mb-2 py-2">
