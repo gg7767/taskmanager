@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from "@clerk/clerk-react";
@@ -21,6 +22,7 @@ const Header = () => {
     }
   }, [isSignedIn, isLoading, userDb?.role, location.pathname, navigate]);
   
+
 
   
   return (
