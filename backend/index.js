@@ -54,11 +54,15 @@ mongoose.connect(process.env.MONGO_URL);
 // ✅ GET user by clerkId
 app.get("/api/users/:clerkId", async (req, res) => {
   try {
+
     const user = await User.findOne({ clerkId: req.params.clerkId });
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json(user);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+
+
+    
   }
 });
 
@@ -93,6 +97,7 @@ app.post("/api/users", async (req, res) => {
 });
 
 
+
 // Create user profile if not exists
 app.post("/api/users", async (req, res) => {
   const { clerkId, email } = req.body;
@@ -100,6 +105,7 @@ app.post("/api/users", async (req, res) => {
   try {
    
     const existingUser = await User.findOne({ clerkId });
+
 
     if (existingUser) {
       console.log("User already exists:", existingUser);
@@ -115,6 +121,7 @@ app.post("/api/users", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 // Update user role
 app.put('/api/users/:clerkId', async (req, res) => {
@@ -132,6 +139,7 @@ app.put('/api/users/:clerkId', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 app.listen(4000, () => {
   console.log("Server running on http://localhost:4000");
