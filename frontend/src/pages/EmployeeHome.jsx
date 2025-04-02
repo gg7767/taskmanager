@@ -4,10 +4,13 @@ import Tab from "@mui/material/Tab";
 //import axios from "axios";
 import { Box, Stack} from "@mui/material";
 
+
 const EmployeeHome = () => {
   //const [pendingTasks, setPendingTasks] = useState([]);
   //const [completedTasks, setCompletedTasks] = useState([]);
   const [value, setValue] = useState(0);
+  // const {userDb} = useUserRole();
+  // const {isSignedIn} = useAuth();
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };

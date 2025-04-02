@@ -11,7 +11,7 @@ import DeleteIcon from "@mui/icons-material/Delete"; // Import the Delete icon
 import { Button, IconButton } from "@mui/material";
 import axios from "axios";
 import { toast } from 'react-toastify';
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Employees = () => {
@@ -49,11 +49,11 @@ const Employees = () => {
       });
   };
 
-  useEffect(() => {
-    axios.get("/employee").then((response) => {
-      setEmployee(response.data);
-    });
-  }, []);
+  // useEffect(() => {
+  //   axios.get("/employee").then((response) => {
+  //     setEmployee(response.data);
+  //   });
+  // }, []);
   return (
     <div>
           <div className="mt-5 mx-4">
