@@ -1,43 +1,101 @@
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Layout from "./Layout"
-import AccountPage from "./pages/AccountPage";
 import EmployeeHome from './pages/EmployeeHome';
 import ManagerHome from './pages/ManagerHome';
 import EmployeeUpdate from "./pages/EmployeeUpdate";
 import TaskForm from './pages/TaskForm';
-import { Amplify } from 'aws-amplify';
-import awsExports from './aws-exports';
+import RoleSelection from './pages/RoleSelection';
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
+
 import '@aws-amplify/ui-react/styles.css';
 import axios from "axios";
 import LandingPage from "./pages/LandingPage";
+import { SignIn } from "@clerk/clerk-react";
 
-
+import useUserRole from './hooks/useUserRole';
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { Navigate } from "react-router-dom";
 
 
 axios.defaults.baseURL = 'http://localhost:4000';
 axios.defaults.withCredentials = true;
-Amplify.configure({
-  Auth: {
-    region: awsExports.REGION,
-    userPoolId: awsExports.USER_POOL_ID,
-    userPoolWebClientId: awsExports.USER_POOL_APP_CLIENT_ID
-}
-})
 
 function App() {
+  const { userDb, isLoading } = useUserRole();
+
   return (
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<LandingPage/>}/>
-            <Route path= '/account' element={<AccountPage />} />
-            <Route path= '/employee' element={<EmployeeHome/>} />
-            <Route path="/manager/:page?" element={<ManagerHome/>} /> 
-            <Route path='/createTask' element={<TaskForm />} />
-            <Route path="/updateEmployee/:id" element={<EmployeeUpdate />} />
-        </Route>
-      </Routes>
-    
+    <Routes>
+      <Route path="/" element={<Layout />}>
+      <Route
+          index
+          element={
+            <>
+              <SignedIn>
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-screen bg-gray-100">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
+                </div>
+                ) : userDb?.role ? (
+                  <Navigate to={`/${userDb.role}`} replace />
+                ) : (
+                  <Navigate to="/role-selection" replace />
+                )}
+              </SignedIn>
+              <SignedOut>
+                <LandingPage />
+              </SignedOut>
+            </>
+          }
+        />
+        <Route path="/sign-in" element={<SignIn />} />
+        
+        {/* Protected Routes */}
+        <Route path="/role-selection" element={
+          <ProtectedRoute>
+            <RoleSelection />
+          </ProtectedRoute>
+        } />
+        
+        {/* Role-based Routes */}
+        <Route path="/employee" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['employee']}>
+              <EmployeeHome />
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/manager/" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['manager']}>
+              <ManagerHome />
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/leadership" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['leadership']}>
+              <div>Leadership Dashboard</div>
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/createTask" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
+              <TaskForm />
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/updateEmployee/:id" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
+              <EmployeeUpdate />
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+      </Route>
+    </Routes>
   );
 }
 

@@ -1,50 +1,53 @@
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import axios from "axios";
-import { Box, Stack, Paper, Button } from "@mui/material";
-import { format } from "date-fns";
+//import axios from "axios";
+import { Box, Stack} from "@mui/material";
+
+
 const EmployeeHome = () => {
-  const [pendingTasks, setPendingTasks] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  //const [pendingTasks, setPendingTasks] = useState([]);
+  //const [completedTasks, setCompletedTasks] = useState([]);
   const [value, setValue] = useState(0);
+  // const {userDb} = useUserRole();
+  // const {isSignedIn} = useAuth();
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  useEffect(() => {
-    axios
-      .get("/allTasks2")
-      .then((response) => {
-        setPendingTasks(response.data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  // useEffect(() => {
+  //   axios
+  //     .get("/allTasks2")
+  //     .then((response) => {
+  //       setPendingTasks(response.data);
+  //     })
+  //     .catch((error) => {
+  //       console.log(error);
+  //     });
 
-    axios
-      .get("/allTasks3")
-      .then((response) => {
-        setCompletedTasks(response.data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }, []);
+  //   axios
+  //     .get("/allTasks3")
+  //     .then((response) => {
+  //       setCompletedTasks(response.data);
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // }, []);
 
-  function handleComplete(id) {
-    const task2 = pendingTasks.find(function(task){ return task._id === id})
-    completedTasks.push(task2)
-    setPendingTasks(pendingTasks.filter((task)=>task._id!==id))
+  // function handleComplete(id) {
+  //   const task2 = pendingTasks.find(function(task){ return task._id === id})
+  //   completedTasks.push(task2)
+  //   setPendingTasks(pendingTasks.filter((task)=>task._id!==id))
     
-    axios
-      .post("/completeTask", { id })
-      .then((res) => {
-        console.log(res);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
+  //   axios
+  //     .post("/completeTask", { id })
+  //     .then((res) => {
+  //       console.log(res);
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // }
 
   return (
     <div>
@@ -68,7 +71,7 @@ const EmployeeHome = () => {
               justifyContent="space-evenly"
               mt={4}
             >
-              {pendingTasks.length > 0 &&
+              {/* {pendingTasks.length > 0 &&
                 pendingTasks.map((task) => (
                   <Paper
                     elevation={3}
@@ -93,9 +96,9 @@ const EmployeeHome = () => {
                     </div>
                     <div>
                       <Button
-                        onClick={() => {
-                          handleComplete(task._id);
-                        }}
+                        // onClick={() => {
+                        //   handleComplete(task._id);
+                        // }}
                         style={{ float: "right", color: "green" }}
                         disableRipple={true}
                       >
@@ -118,7 +121,7 @@ const EmployeeHome = () => {
                       </Button>
                     </div>
                   </Paper>
-                ))}
+                ))} */}
             </Stack>
           </Box>
         </div>
@@ -135,7 +138,7 @@ const EmployeeHome = () => {
               justifyContent="space-evenly"
               mt={4}
             >
-              {completedTasks.length > 0 &&
+              {/* {completedTasks.length > 0 &&
                 completedTasks.map((task) => (
                   <Paper
                     elevation={3}
@@ -159,7 +162,7 @@ const EmployeeHome = () => {
                       - Status: {task.completed ? "Completed" : "Not Completed"}
                     </div>
                   </Paper>
-                ))}
+                ))} */}
             </Stack>
           </Box>
         </div>
