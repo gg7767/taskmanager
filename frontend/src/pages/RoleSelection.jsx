@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
@@ -37,11 +36,9 @@ const RoleSelection = () => {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
-
       </div>
     );
   }
-
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-50 transition-opacity duration-500">
@@ -69,12 +66,9 @@ const RoleSelection = () => {
         >
           {loading ? "Assigning..." : "Confirm Role"}
         </button>
-
       </div>
     </div>
   );
 };
 
-
 export default RoleSelection;
-

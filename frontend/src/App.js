@@ -9,18 +9,14 @@ import RoleSelection from './pages/RoleSelection';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 
-
-
 import '@aws-amplify/ui-react/styles.css';
 import axios from "axios";
 import LandingPage from "./pages/LandingPage";
 import { SignIn } from "@clerk/clerk-react";
 
-
 import useUserRole from './hooks/useUserRole';
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Navigate } from "react-router-dom";
-
 
 
 axios.defaults.baseURL = 'http://localhost:4000';
@@ -32,7 +28,6 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-
       <Route
           index
           element={
@@ -54,7 +49,6 @@ function App() {
             </>
           }
         />
-
         <Route path="/sign-in" element={<SignIn />} />
         
         {/* Protected Routes */}
@@ -72,9 +66,7 @@ function App() {
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
-
         <Route path="/manager/" element={
-
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['manager']}>
               <ManagerHome />
