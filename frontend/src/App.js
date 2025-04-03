@@ -17,6 +17,7 @@ import { SignIn } from "@clerk/clerk-react";
 import useUserRole from './hooks/useUserRole';
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Navigate } from "react-router-dom";
+import AddEmployee from "./pages/AddEmployee";
 
 
 axios.defaults.baseURL = 'http://localhost:4000';
@@ -80,10 +81,10 @@ function App() {
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
-        <Route path="/createTask" element={
+        <Route path="manager/add-employee" element={
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
-              <TaskForm />
+              <AddEmployee/>
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
