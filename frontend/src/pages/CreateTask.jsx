@@ -24,6 +24,7 @@ const CreateTask = () => {
     description: "",
     deadline: "",
     user: "",
+    completed: false,
   });
   const [showForm, setShowForm] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
@@ -75,6 +76,7 @@ const CreateTask = () => {
           description: task.description,
           deadline: task.deadline.split("T")[0],
           user: task.user,
+          completed: task.completed,
         });
       }).catch(err => {
         console.error("Failed to fetch task for editing:", err);
@@ -88,7 +90,11 @@ const CreateTask = () => {
   }, [userDb]);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "completed" ? value === "true" : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -107,31 +113,29 @@ const CreateTask = () => {
       const estDate = new Date(rawDate.getTime() - estOffset * 60000);
       const estDeadline = estDate.toISOString();
 
+      const payload = {
+        name: form.name,
+        description: form.description,
+        deadline: estDeadline,
+        userId: form.user,
+        managerId: userDb._id,
+        completed: form.completed,
+      };
+
       if (isEdit) {
-        await axios.put(`/api/task/${taskId}`, {
-          name: form.name,
-          description: form.description,
-          deadline: estDeadline,
-          userId: form.user,
-          managerId: userDb._id
-        });
+        await axios.put(`/api/task/${taskId}`, payload);
         toast.success("Task updated successfully!", {
           position: "bottom-center",
           autoClose: 3000,
         });
       } else {
-        await axios.post("/api/tasks", {
-          name: form.name,
-          description: form.description,
-          deadline: estDeadline,
-          userId: form.user,
-          managerId: userDb._id,
-        });
+        await axios.post("/api/tasks", payload);
         toast.success("Task created successfully!", {
           position: "bottom-center",
           autoClose: 3000,
         });
       }
+
       setTimeout(() => navigate("/manager?tab=1"), 1000);
     } catch (err) {
       console.error("Failed to submit task:", err);
@@ -169,7 +173,6 @@ const CreateTask = () => {
               fullWidth
               margin="normal"
               required
-              placeholder="e.g. Weekly Report"
             />
 
             <TextField
@@ -179,10 +182,9 @@ const CreateTask = () => {
               onChange={handleChange}
               fullWidth
               multiline
-              rows={6}
+              rows={5}
               margin="normal"
               required
-              placeholder="e.g. Summarize your weekly progress and submit before Friday"
             />
 
             <TextField
@@ -212,6 +214,20 @@ const CreateTask = () => {
                   {emp.fullName}
                 </MenuItem>
               ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Status"
+              name="completed"
+              value={form.completed.toString()}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            >
+              <MenuItem value="false">Pending</MenuItem>
+              <MenuItem value="true">Completed</MenuItem>
             </TextField>
 
             <Button

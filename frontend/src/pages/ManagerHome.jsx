@@ -23,6 +23,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import useUserRole from "../hooks/useUserRole";
@@ -181,6 +182,9 @@ const ManagerHome = () => {
                         setConfirmOpen(true);
                       }}>
                         <DeleteIcon />
+                      </IconButton>
+                      <IconButton color="info" onClick={() => navigate(`/task/${task._id}/discussion`)}>
+                        <ChatBubbleOutlineIcon />
                       </IconButton>
                     </TableCell>
                   </TableRow>

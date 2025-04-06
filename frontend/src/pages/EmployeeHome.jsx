@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Tab, Tabs, Typography, Paper, Chip, Grid, IconButton, Tooltip } from '@mui/material';
+import {
+  Box, Tab, Tabs, Typography, Paper, Chip, Grid,
+  IconButton, Tooltip
+} from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { format } from 'date-fns';
 import { useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function TabPanel({ children, value, index }) {
@@ -18,6 +22,7 @@ const EmployeeHome = () => {
   const [value, setValue] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [managerName, setManagerName] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTasksAndManager = async () => {
@@ -60,6 +65,10 @@ const EmployeeHome = () => {
     }
   };
 
+  const handleCardClick = (taskId) => {
+    navigate(`/task/${taskId}/discussion`);
+  };
+
   return (
     <Box sx={{ width: '100%' }}>
       <Typography variant="h4" align="center" sx={{ my: 3 }}>Welcome, Employee</Typography>
@@ -72,7 +81,16 @@ const EmployeeHome = () => {
         <Grid container spacing={2}>
           {tasks.filter(task => !task.completed).map((task, i) => (
             <Grid item xs={12} md={6} key={i}>
-              <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 2,
+                  height: '100%',
+                  cursor: 'pointer',
+                  '&:hover': { boxShadow: 6 }
+                }}
+                onClick={() => handleCardClick(task._id)}
+              >
                 <Typography variant="h6">{task.name}</Typography>
                 <Typography>Description: {task.description}</Typography>
                 <Typography>Manager: {managerName}</Typography>
@@ -81,7 +99,10 @@ const EmployeeHome = () => {
                   <Chip label="Pending" color="warning" />
                   <Tooltip title="Mark as complete" arrow>
                     <IconButton
-                      onClick={() => handleComplete(task._id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent card click
+                        handleComplete(task._id);
+                      }}
                       sx={{ border: '1.5px solid green', color: 'green', p: 0.5 }}
                     >
                       <CheckCircleIcon />
@@ -98,7 +119,16 @@ const EmployeeHome = () => {
         <Grid container spacing={2}>
           {tasks.filter(task => task.completed).map((task, i) => (
             <Grid item xs={12} md={6} key={i}>
-              <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 2,
+                  height: '100%',
+                  cursor: 'pointer',
+                  '&:hover': { boxShadow: 6 }
+                }}
+                onClick={() => handleCardClick(task._id)}
+              >
                 <Typography variant="h6">{task.name}</Typography>
                 <Typography>Description: {task.description}</Typography>
                 <Typography>Manager: {managerName}</Typography>

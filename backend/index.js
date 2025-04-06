@@ -7,6 +7,8 @@ const session = require("express-session");
 const axios = require("axios");
 const User = require("./model/User");
 const Task = require("./model/Task");
+const Comment = require("./model/Comment");
+
 const { requireAuth } = require("@clerk/express");
 require("dotenv").config();
 
@@ -132,17 +134,31 @@ app.get("/api/employees/manager/:managerId", async (req, res) => {
 
 app.post("/api/tasks", async (req, res) => {
   try {
-    const { name, description, deadline, userId, managerId, userName, managerName } = req.body;
+    const { name, description, deadline, userId, managerId, completed = false, userName, managerName } = req.body;
+
     if (!name || !description || !deadline || !userId || !managerId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-    const newTask = new Task({ name, description, deadline, completed: false, user: userId, manager: managerId, userName, managerName });
+
+    const newTask = new Task({
+      name,
+      description,
+      deadline,
+      completed,
+      user: userId,
+      manager: managerId,
+      userName,
+      managerName,
+    });
+
     await newTask.save();
     res.status(201).json(newTask);
   } catch (err) {
+    console.error("Failed to create task:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 app.get("/api/tasks/manager/:managerId", async (req, res) => {
   try {
@@ -207,7 +223,7 @@ app.get("/api/task/:taskId", async (req, res) => {
 
 app.put("/api/task/:taskId", async (req, res) => {
   const { taskId } = req.params;
-  const { name, description, deadline, userId, managerId } = req.body;
+  const { name, description, deadline, userId, managerId, completed = false } = req.body;
 
   if (!name || !description || !deadline || !userId || !managerId) {
     return res.status(400).json({ message: "Missing required fields" });
@@ -215,16 +231,14 @@ app.put("/api/task/:taskId", async (req, res) => {
 
   try {
     const task = await Task.findById(taskId);
-
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
+    if (!task) return res.status(404).json({ message: "Task not found" });
 
     task.name = name;
     task.description = description;
     task.deadline = deadline;
     task.user = userId;
     task.manager = managerId;
+    task.completed = completed;
 
     await task.save();
 
@@ -234,6 +248,7 @@ app.put("/api/task/:taskId", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 app.get("/api/tasks/user/:userId/pending-count", async (req, res) => {
@@ -280,6 +295,56 @@ app.delete("/api/tasks/:taskId", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+// GET comments for a task
+app.get("/api/task/:taskId/comments", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const comments = await Comment.find({ taskId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+app.get("/api/comments/task/:taskId", async (req, res) => {
+  try {
+
+    const { taskId } = req.params;
+    const comments = await Comment.find({ task: taskId })
+      .sort({ createdAt: 1 })
+      .populate("user", "email clerkId")
+      .lean();
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/api/comments", async (req, res) => {
+  const { taskId, userId, text } = req.body;
+
+  if (!taskId || !userId || !text) {
+    console.log("⚠️ Missing fields", { taskId, userId, text });
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const newComment = new Comment({ taskId, userId, text });
+    await newComment.save();
+    res.status(201).json(newComment);
+  } catch (err) {
+    console.error("Error posting comment:", err);
+    res.status(500).json({ message: "Failed to post comment" });
+  }
+});
+
 
 app.listen(4000, () => {
   console.log("Server running on http://localhost:4000");

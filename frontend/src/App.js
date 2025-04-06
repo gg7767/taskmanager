@@ -15,6 +15,7 @@ import { SignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Navigate } from "react-router-dom";
 import AddEmployee from "./pages/AddEmployee";
 import useUserRole from './hooks/useUserRole';
+import TaskDiscussion from "./pages/TaskDiscussion"; // ✅ Import the discussion page
 
 axios.defaults.baseURL = 'http://localhost:4000';
 axios.defaults.withCredentials = true;
@@ -49,14 +50,12 @@ function App() {
 
         <Route path="/sign-in" element={<SignIn />} />
 
-        {/* Protected Routes */}
         <Route path="/role-selection" element={
           <ProtectedRoute>
             <RoleSelection />
           </ProtectedRoute>
         } />
 
-        {/* Role-based Routes */}
         <Route path="/employee" element={
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['employee']}>
@@ -90,6 +89,11 @@ function App() {
             <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
               <EmployeeUpdate />
             </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/task/:taskId/discussion" element={
+          <ProtectedRoute>
+            <TaskDiscussion />
           </ProtectedRoute>
         } />
         <Route path="/leadership" element={
