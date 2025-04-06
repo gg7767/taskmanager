@@ -4,20 +4,18 @@ import Layout from "./Layout"
 import EmployeeHome from './pages/EmployeeHome';
 import ManagerHome from './pages/ManagerHome';
 import EmployeeUpdate from "./pages/EmployeeUpdate";
-import TaskForm from './pages/TaskForm';
+import CreateTask from './pages/CreateTask';
 import RoleSelection from './pages/RoleSelection';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
-
 import '@aws-amplify/ui-react/styles.css';
 import axios from "axios";
 import LandingPage from "./pages/LandingPage";
-import { SignIn } from "@clerk/clerk-react";
-
-import useUserRole from './hooks/useUserRole';
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { SignIn, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Navigate } from "react-router-dom";
-
+import AddEmployee from "./pages/AddEmployee";
+import useUserRole from './hooks/useUserRole';
+import TaskDiscussion from "./pages/TaskDiscussion"; // ✅ Import the discussion page
 
 axios.defaults.baseURL = 'http://localhost:4000';
 axios.defaults.withCredentials = true;
@@ -28,15 +26,15 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-      <Route
+        <Route
           index
           element={
             <>
               <SignedIn>
                 {isLoading ? (
                   <div className="flex items-center justify-center h-screen bg-gray-100">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
-                </div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
+                  </div>
                 ) : userDb?.role ? (
                   <Navigate to={`/${userDb.role}`} replace />
                 ) : (
@@ -49,16 +47,15 @@ function App() {
             </>
           }
         />
+
         <Route path="/sign-in" element={<SignIn />} />
-        
-        {/* Protected Routes */}
+
         <Route path="/role-selection" element={
           <ProtectedRoute>
             <RoleSelection />
           </ProtectedRoute>
         } />
-        
-        {/* Role-based Routes */}
+
         <Route path="/employee" element={
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['employee']}>
@@ -66,24 +63,24 @@ function App() {
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
-        <Route path="/manager/" element={
+        <Route path="/manager" element={
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['manager']}>
               <ManagerHome />
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
-        <Route path="/leadership" element={
+        <Route path="/manager/add-employee" element={
           <ProtectedRoute>
-            <RoleBasedRoute allowedRoles={['leadership']}>
-              <div>Leadership Dashboard</div>
+            <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
+              <AddEmployee />
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
-        <Route path="/createTask" element={
+        <Route path="/manager/create-task" element={
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
-              <TaskForm />
+              <CreateTask />
             </RoleBasedRoute>
           </ProtectedRoute>
         } />
@@ -91,6 +88,18 @@ function App() {
           <ProtectedRoute>
             <RoleBasedRoute allowedRoles={['manager', 'leadership']}>
               <EmployeeUpdate />
+            </RoleBasedRoute>
+          </ProtectedRoute>
+        } />
+        <Route path="/task/:taskId/discussion" element={
+          <ProtectedRoute>
+            <TaskDiscussion />
+          </ProtectedRoute>
+        } />
+        <Route path="/leadership" element={
+          <ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['leadership']}>
+              <div>Leadership Dashboard</div>
             </RoleBasedRoute>
           </ProtectedRoute>
         } />

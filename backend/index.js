@@ -1,129 +1,96 @@
 console.log("Starting backend server...");
-const clerkMiddleware = require('@clerk/express')
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const bcrypt = require("bcryptjs");
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
+const session = require("express-session");
+const axios = require("axios");
 const User = require("./model/User");
-const session = require('express-session');
 const Task = require("./model/Task");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-const datefns = require("date-fns");
-const jwtSecret = "fsjflsakdjiwoejflsdkjfow4u938247509weuqr98q23utowqig";
+const Comment = require("./model/Comment");
 
+const { requireAuth } = require("@clerk/express");
 require("dotenv").config();
 
 app.use(
   cors({
-    credentials: true,
     origin: "http://localhost:3000",
+    credentials: true,
   })
 );
 
+app.use(express.json());
 app.use(session({
-  secret: 'abcd',  // use a secure random string
+  secret: 'abcd',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // use true in production with HTTPS
+    secure: false,
     httpOnly: true,
-    sameSite: 'lax' // or 'none' if frontend and backend are on different domains with HTTPS
+    sameSite: 'lax'
   }
 }));
 
-app.use(clerkMiddleware.clerkMiddleware())
-
-app.use(express.json());
-
-app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:3000', // Allow frontend dev server
-  methods: ['GET', 'POST', 'PUT'],
-  credentials: true,
-}));
-
-// Preflight route to handle OPTIONS requests
+mongoose.connect(process.env.MONGO_URL);
 
 app.get("/test", (req, res) => {
   res.json("test ok");
 });
-mongoose.connect(process.env.MONGO_URL);
 
-// ✅ GET user by clerkId
+app.get(["/api/users/available-employees", "/available-employees"], async (req, res) => {
+  try {
+    const employees = await User.find({
+      $or: [
+        { role: 'employee' },
+        { role: null }
+      ],
+      managerId: { $exists: false }
+    }).lean();
+
+    res.status(200).json(employees || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/clerk/user/:clerkId", async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+    const response = await axios.get(`https://api.clerk.dev/v1/users/${clerkId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+      },
+    });
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch user from Clerk" });
+  }
+});
+
 app.get("/api/users/:clerkId", async (req, res) => {
   try {
-
     const user = await User.findOne({ clerkId: req.params.clerkId });
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json(user);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
-
-
-    
   }
 });
 
 app.post("/api/users", async (req, res) => {
   const { clerkId, email } = req.body;
-
   try {
-    const user = await User.findOneAndUpdate(
-      { clerkId },
-      {
-        $setOnInsert: {
-          email,
-          role: null,
-          pendingTasks: 0,
-          completedTasks: 0,
-        },
-      },
-      { new: true, upsert: true } // 👈 ensures atomic insert if not exists
-    );
-
-    if (user.wasNew) {
-      console.log("New user created:", user);
-    } else {
-      console.log("User already exists:", user);
-    }
-
-    return res.status(200).json(user);
-  } catch (error) {
-    console.error("POST user error:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
-
-
-
-// Create user profile if not exists
-app.post("/api/users", async (req, res) => {
-  const { clerkId, email } = req.body;
-
-  try {
-   
     const existingUser = await User.findOne({ clerkId });
+    if (existingUser) return res.status(200).json(existingUser);
 
-
-    if (existingUser) {
-      console.log("User already exists:", existingUser);
-      return res.status(200).json(existingUser);
-    }
     const newUser = new User({ clerkId, email });
     await newUser.save();
-
-    console.log("New user created:", newUser);
     res.status(201).json(newUser);
   } catch (error) {
-    console.error("POST user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-
-// Update user role
 app.put('/api/users/:clerkId', async (req, res) => {
   const { role } = req.body;
   try {
@@ -135,8 +102,246 @@ app.put('/api/users/:clerkId', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
-    console.error('PUT user error:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post("/api/users/assign-employee", async (req, res) => {
+  const { managerId, employeeId } = req.body;
+  if (!managerId || !employeeId) return res.status(400).json({ message: "Both managerId and employeeId are required" });
+
+  try {
+    const employee = await User.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    if (employee.managerId) return res.status(400).json({ message: "Employee already assigned to a manager" });
+
+    employee.managerId = managerId;
+    await employee.save();
+    res.status(200).json({ message: "Employee assigned successfully", employee });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/api/employees/manager/:managerId", async (req, res) => {
+  try {
+    const employees = await User.find({ managerId: req.params.managerId });
+    res.status(200).json(employees);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/tasks", async (req, res) => {
+  try {
+    const { name, description, deadline, userId, managerId, completed = false, userName, managerName } = req.body;
+
+    if (!name || !description || !deadline || !userId || !managerId) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const newTask = new Task({
+      name,
+      description,
+      deadline,
+      completed,
+      user: userId,
+      manager: managerId,
+      userName,
+      managerName,
+    });
+
+    await newTask.save();
+    res.status(201).json(newTask);
+  } catch (err) {
+    console.error("Failed to create task:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+app.get("/api/tasks/manager/:managerId", async (req, res) => {
+  try {
+    const tasks = await Task.find({ manager: req.params.managerId }).lean();
+    const enrichedTasks = await Promise.all(
+      tasks.map(async (task) => {
+        if (!task.user) return { ...task, userName: "-" };
+        const user = await User.findById(task.user);
+        if (!user) return { ...task, userName: "-" };
+        try {
+          const clerkRes = await axios.get(`https://api.clerk.dev/v1/users/${user.clerkId}`, {
+            headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
+          });
+          const clerkUser = clerkRes.data;
+          const userName = clerkUser.first_name && clerkUser.last_name
+            ? `${clerkUser.first_name} ${clerkUser.last_name}`
+            : clerkUser.email.split("@")[0];
+          return { ...task, userName };
+        } catch {
+          return { ...task, userName: user.email.split("@")[0] };
+        }
+      })
+    );
+    res.status(200).json(enrichedTasks);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/api/tasks/:clerkId", async (req, res) => {
+  try {
+    const user = await User.findOne({ clerkId: req.params.clerkId });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const tasks = await Task.find({ user: user._id });
+    let managerClerkId = null;
+    if (user.managerId) {
+      const manager = await User.findById(user.managerId);
+      managerClerkId = manager?.clerkId || null;
+    }
+    res.status(200).json({ tasks, managerClerkId });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ Get single task by ID for editing
+app.get("/api/task/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json(task);
+  } catch (error) {
+    console.error("Error fetching task:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.put("/api/task/:taskId", async (req, res) => {
+  const { taskId } = req.params;
+  const { name, description, deadline, userId, managerId, completed = false } = req.body;
+
+  if (!name || !description || !deadline || !userId || !managerId) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.name = name;
+    task.description = description;
+    task.deadline = deadline;
+    task.user = userId;
+    task.manager = managerId;
+    task.completed = completed;
+
+    await task.save();
+
+    res.status(200).json({ message: "Task updated successfully", task });
+  } catch (err) {
+    console.error("Failed to update task:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+
+app.get("/api/tasks/user/:userId/pending-count", async (req, res) => {
+  try {
+    const count = await Task.countDocuments({ user: req.params.userId, completed: false });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: "Error counting pending tasks" });
+  }
+});
+
+app.get("/api/tasks/user/:userId/completed-count", async (req, res) => {
+  try {
+    const count = await Task.countDocuments({ user: req.params.userId, completed: true });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: "Error counting completed tasks" });
+  }
+});
+
+app.put("/api/tasks/complete/:taskId", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.completed = true;
+    await task.save();
+
+    res.status(200).json({ message: "Task marked as complete", task });
+  } catch (error) {
+    console.error("Error marking task complete:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+app.delete("/api/tasks/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const deleted = await Task.findByIdAndDelete(taskId);
+    if (!deleted) return res.status(404).json({ message: "Task not found" });
+    res.status(200).json({ message: "Task deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+// GET comments for a task
+app.get("/api/task/:taskId/comments", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const comments = await Comment.find({ taskId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+app.get("/api/comments/task/:taskId", async (req, res) => {
+  try {
+
+    const { taskId } = req.params;
+    const comments = await Comment.find({ task: taskId })
+      .sort({ createdAt: 1 })
+      .populate("user", "email clerkId")
+      .lean();
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/api/comments", async (req, res) => {
+  const { taskId, userId, text } = req.body;
+
+  if (!taskId || !userId || !text) {
+    console.log("⚠️ Missing fields", { taskId, userId, text });
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const newComment = new Comment({ taskId, userId, text });
+    await newComment.save();
+    res.status(201).json(newComment);
+  } catch (err) {
+    console.error("Error posting comment:", err);
+    res.status(500).json({ message: "Failed to post comment" });
   }
 });
 
@@ -144,4 +349,3 @@ app.put('/api/users/:clerkId', async (req, res) => {
 app.listen(4000, () => {
   console.log("Server running on http://localhost:4000");
 });
-

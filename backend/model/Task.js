@@ -1,21 +1,20 @@
-const mongoose = require('mongoose');
-const UserModel = require('./User');
-const {Schema} = mongoose;
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const TaskSchema = new Schema({
-    name:String,
+const TaskSchema = new Schema(
+  {
+    name: { type: String, required: true },
     description: String,
     deadline: Date,
-    completed: Boolean,
-    user: mongoose.ObjectId,
-    manager: mongoose.ObjectId,
+    completed: { type: Boolean, default: false },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    manager: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    // Optional cached names (only if needed for history/logs)
     userName: String,
-    managerName: String
-})
+    managerName: String,
+  },
+  { timestamps: true }
+);
 
-TaskSchema.path('user').ref(UserModel);
-TaskSchema.path('manager').ref(UserModel)
-
-const TaskModel = mongoose.model('Task', TaskSchema);
-
-module.exports = TaskModel;
+module.exports = mongoose.model("Task", TaskSchema);
