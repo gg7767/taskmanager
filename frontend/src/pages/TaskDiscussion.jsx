@@ -26,6 +26,7 @@ const TaskDiscussion = () => {
   const { user } = useUser();
   const [task, setTask] = useState(null);
   const [comments, setComments] = useState([]);
+  const [users, setUsers] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +35,31 @@ const TaskDiscussion = () => {
       try {
         const taskRes = await axios.get(`/api/task/${taskId}`);
         setTask(taskRes.data);
+
+        const enrichedUsers = await Promise.all(
+          taskRes.data.users.map(async (user)=>{
+            try{
+              
+              const clerkRes = await axios.get(`/api/clerk/user/${user.clerkId}`);
+              const clerkUser = clerkRes.data;
+              return {
+                userid: user,
+                userName: clerkUser.first_name && clerkUser.last_name
+                  ? `${clerkUser.first_name} ${clerkUser.last_name}`
+                  : clerkUser.email.split("@")[0],
+                avatar: clerkUser.image_url
+              };
+            }
+            catch{
+              return {
+                userid : user,
+                userName: "User",
+                avatar: ""
+              };
+            }
+          })
+        )
+        setUsers(enrichedUsers);
         const commentRes = await axios.get(`/api/task/${taskId}/comments`);
 
         const enrichedComments = await Promise.all(
@@ -109,12 +135,44 @@ const TaskDiscussion = () => {
           Task Details
         </Typography>
 
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6">{task.name}</Typography>
+        <Paper
+          sx={{
+            p: 3,
+            mb: 4,
+            border: task.completed ? "none" : "2px solid #ffb300",
+            bgcolor: task.completed ? "#f5f5f5" : "#fffde7",
+          }}
+        >
+          <Typography variant="h6" gutterBottom>{task.name}</Typography>
           <Typography>Description: {task.description}</Typography>
           <Typography>Deadline: {new Date(task.deadline).toLocaleDateString()}</Typography>
-          <Typography>Status: {task.completed ? "Completed" : "Pending"}</Typography>
+          <Typography>
+            Status:{" "}
+            <strong style={{ color: task.completed ? "#388e3c" : "#f57c00" }}>
+              {task.completed ? "Completed" : "Pending"}
+            </strong>
+          </Typography>
+
+          {/* Assigned To section */}
+          <Box mt={3}>
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Assigned To:
+            </Typography>
+            <Box display="flex" flexDirection="column" gap={1}>
+              {users.length > 0 ? (
+                users.map((u) => (
+                  <Box key={u.userid} display="flex" alignItems="center" gap={1}>
+                    <Avatar src={u.avatar} alt={u.userName} sx={{ width: 32, height: 32 }} />
+                    <Typography>{u.userName}</Typography>
+                  </Box>
+                ))
+              ) : (
+                <Typography color="text.secondary">No assignees found.</Typography>
+              )}
+            </Box>
+          </Box>
         </Paper>
+
 
         <Typography variant="h5" gutterBottom>
           Comments
