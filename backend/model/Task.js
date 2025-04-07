@@ -7,11 +7,15 @@ const TaskSchema = new Schema(
     description: String,
     deadline: Date,
     completed: { type: Boolean, default: false },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    manager: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-    // Optional cached names (only if needed for history/logs)
-    userName: String,
+    // Change 'user' to 'users' as an array
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
+    // Manager stays a single user
+    manager: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+    // Optional cached fields for display purposes
+    userNames: [String],
     managerName: String,
   },
   { timestamps: true }

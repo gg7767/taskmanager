@@ -134,20 +134,23 @@ app.get("/api/employees/manager/:managerId", async (req, res) => {
 
 app.post("/api/tasks", async (req, res) => {
   try {
-    const { name, description, deadline, userId, managerId, completed = false, userName, managerName } = req.body;
+    const { name, description, deadline, users, managerId, completed = false, managerName } = req.body;
 
-    if (!name || !description || !deadline || !userId || !managerId) {
+    if (!name || !description || !deadline || !users?.length || !managerId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+
+    const employeeDocs = await User.find({ _id: { $in: users } });
+    const userNames = employeeDocs.map((u) => u.email.split("@")[0]);
 
     const newTask = new Task({
       name,
       description,
       deadline,
       completed,
-      user: userId,
+      users,
       manager: managerId,
-      userName,
+      userNames,
       managerName,
     });
 
@@ -160,39 +163,65 @@ app.post("/api/tasks", async (req, res) => {
 });
 
 
+
 app.get("/api/tasks/manager/:managerId", async (req, res) => {
   try {
     const tasks = await Task.find({ manager: req.params.managerId }).lean();
+
     const enrichedTasks = await Promise.all(
       tasks.map(async (task) => {
-        if (!task.user) return { ...task, userName: "-" };
-        const user = await User.findById(task.user);
-        if (!user) return { ...task, userName: "-" };
-        try {
-          const clerkRes = await axios.get(`https://api.clerk.dev/v1/users/${user.clerkId}`, {
-            headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
-          });
-          const clerkUser = clerkRes.data;
-          const userName = clerkUser.first_name && clerkUser.last_name
-            ? `${clerkUser.first_name} ${clerkUser.last_name}`
-            : clerkUser.email.split("@")[0];
-          return { ...task, userName };
-        } catch {
-          return { ...task, userName: user.email.split("@")[0] };
-        }
+        const userAvatars = await Promise.all(
+          (task.users || []).map(async (userId) => {
+            const user = await User.findById(userId);
+            if (!user || !user.clerkId) return null;
+
+            try {
+              const clerkRes = await axios.get(
+                `https://api.clerk.dev/v1/users/${user.clerkId}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+                  },
+                }
+              );
+
+              const clerk = clerkRes.data;
+              return {
+                name:
+                  clerk.first_name && clerk.last_name
+                    ? `${clerk.first_name} ${clerk.last_name}`
+                    : user.email.split("@")[0],
+                avatar: clerk.image_url,
+              };
+            } catch (err) {
+              return {
+                name: user.email.split("@")[0],
+                avatar: null,
+              };
+            }
+          })
+        );
+
+        return {
+          ...task,
+          userAvatars: userAvatars.filter(Boolean),
+        };
       })
     );
+
     res.status(200).json(enrichedTasks);
   } catch (error) {
+    console.error("Error fetching enriched tasks:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 app.get("/api/tasks/:clerkId", async (req, res) => {
   try {
     const user = await User.findOne({ clerkId: req.params.clerkId });
     if (!user) return res.status(404).json({ message: "User not found" });
-    const tasks = await Task.find({ user: user._id });
+    const tasks = await Task.find({ users: user._id });
     let managerClerkId = null;
     if (user.managerId) {
       const manager = await User.findById(user.managerId);
@@ -204,17 +233,32 @@ app.get("/api/tasks/:clerkId", async (req, res) => {
   }
 });
 
-// ✅ Get single task by ID for editing
 app.get("/api/task/:taskId", async (req, res) => {
   try {
     const { taskId } = req.params;
-    const task = await Task.findById(taskId);
+    const task = await Task.findById(taskId).lean();
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    res.status(200).json(task);
+    // Populate basic info for users if needed (optional enhancement)
+    const enrichedUsers = await Promise.all(
+      (task.users || []).map(async (userId) => {
+        const user = await User.findById(userId).lean();
+        if (!user) return null;
+        return {
+          _id: user._id,
+          email: user.email,
+          clerkId: user.clerkId,
+        };
+      })
+    );
+
+    res.status(200).json({
+      ...task,
+      users: enrichedUsers.filter(Boolean),
+    });
   } catch (error) {
     console.error("Error fetching task:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -223,9 +267,9 @@ app.get("/api/task/:taskId", async (req, res) => {
 
 app.put("/api/task/:taskId", async (req, res) => {
   const { taskId } = req.params;
-  const { name, description, deadline, userId, managerId, completed = false } = req.body;
+  const { name, description, deadline, users, managerId, completed = false } = req.body;
 
-  if (!name || !description || !deadline || !userId || !managerId) {
+  if (!name || !description || !deadline || !users?.length || !managerId) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
@@ -236,7 +280,7 @@ app.put("/api/task/:taskId", async (req, res) => {
     task.name = name;
     task.description = description;
     task.deadline = deadline;
-    task.user = userId;
+    task.users = users;
     task.manager = managerId;
     task.completed = completed;
 

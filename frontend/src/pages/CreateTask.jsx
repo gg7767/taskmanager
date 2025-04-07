@@ -7,7 +7,13 @@ import {
   MenuItem,
   Paper,
   IconButton,
-  Fade
+  Fade,
+  Select,
+  InputLabel,
+  FormControl,
+  OutlinedInput,
+  Checkbox,
+  ListItemText
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,7 +29,7 @@ const CreateTask = () => {
     name: "",
     description: "",
     deadline: "",
-    user: "",
+    users: [],
     completed: false,
   });
   const [showForm, setShowForm] = useState(true);
@@ -75,7 +81,7 @@ const CreateTask = () => {
           name: task.name,
           description: task.description,
           deadline: task.deadline.split("T")[0],
-          user: task.user,
+          users: task.users?.map(u => u._id) || [],
           completed: task.completed,
         });
       }).catch(err => {
@@ -99,7 +105,7 @@ const CreateTask = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.description || !form.deadline || !form.user) {
+    if (!form.name || !form.description || !form.deadline || form.users.length === 0) {
       toast.error("Please fill in all required fields.", {
         position: "bottom-center",
         autoClose: 3000,
@@ -117,7 +123,7 @@ const CreateTask = () => {
         name: form.name,
         description: form.description,
         deadline: estDeadline,
-        userId: form.user,
+        users: form.users,
         managerId: userDb._id,
         completed: form.completed,
       };
@@ -199,22 +205,30 @@ const CreateTask = () => {
               required
             />
 
-            <TextField
-              select
-              label="Assign To"
-              name="user"
-              value={form.user}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            >
-              {employees.map((emp) => (
-                <MenuItem key={emp._id} value={emp._id}>
-                  {emp.fullName}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="users-label">Assign To</InputLabel>
+              <Select
+                labelId="users-label"
+                multiple
+                name="users"
+                value={form.users}
+                onChange={(e) => setForm((prev) => ({ ...prev, users: e.target.value }))}
+                input={<OutlinedInput label="Assign To" />}
+                renderValue={(selected) => (
+                  employees
+                    .filter((e) => selected.includes(e._id))
+                    .map((e) => e.fullName)
+                    .join(", ")
+                )}
+              >
+                {employees.map((emp) => (
+                  <MenuItem key={emp._id} value={emp._id}>
+                    <Checkbox checked={form.users.includes(emp._id)} />
+                    <ListItemText primary={emp.fullName} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <TextField
               select

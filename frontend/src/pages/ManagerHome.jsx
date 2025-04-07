@@ -42,6 +42,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import useUserRole from "../hooks/useUserRole";
+import EmployeeTable from "../components/EmployeeTable";
+import TaskTable from "../components/TaskTable";
 
 const ManagerHome = () => {
   const { user } = useUser();
@@ -50,13 +52,11 @@ const ManagerHome = () => {
   const query = new URLSearchParams(location.search);
   const defaultTab = parseInt(query.get("tab")) || 0;
   const [tab, setTab] = useState(defaultTab);
-  const [employees, setEmployees] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [employees, setEmployees] = useState([]);  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,41 +133,8 @@ const ManagerHome = () => {
     }
   };
 
-  const handleExport = () => {
-    const csvContent = [
-      ["Task", "Description", "Assigned To", "Status", "Deadline"],
-      ...filteredTasks.map((t) => [
-        t.name,
-        t.description,
-        t.userName,
-        t.completed ? "Completed" : "Pending",
-        new Date(t.deadline).toLocaleDateString(),
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "tasks_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "completed" ? task.completed : !task.completed);
-    const matchesAssignee =
-      assigneeFilter === "all" || task.userName === assigneeFilter;
-    const matchesSearch =
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesAssignee && matchesSearch;
-  });
 
   return (
     <Box sx={{ p: 4, minHeight: "100vh", position: "relative", bgcolor: "#f8f9fa" }}>
@@ -180,176 +147,12 @@ const ManagerHome = () => {
         <Tab label="Tasks" />
       </Tabs>
       {tab === 0 && (
-        <Paper elevation={3} sx={{ mt: 4, p: 3, width: "100%", maxWidth: 1000, mx: "auto" }}>
-          {employees.length === 0 ? (
-            <Typography align="center">No employees found.</Typography>
-          ) : (
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "#f1f1f1" }}>
-                  <TableCell><strong>Name</strong></TableCell>
-                  <TableCell><strong>Email</strong></TableCell>
-                  <TableCell><strong>Pending Tasks</strong></TableCell>
-                  <TableCell><strong>Completed Tasks</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {employees.map((emp) => (
-                  <TableRow key={emp._id}>
-                    <TableCell>{emp.name}</TableCell>
-                    <TableCell>{emp.email}</TableCell>
-                    <TableCell>{emp.pendingTasks}</TableCell>
-                    <TableCell>{emp.completedTasks}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Paper>
+        <EmployeeTable employees={employees}/>
       )}
 
 
       {tab === 1 && (
-        <Paper elevation={3} sx={{ mt: 4, p: 3, width: "100%", maxWidth: 1200, mx: "auto" }}>
-          <Stack spacing={2} mb={3}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap" justifyContent="space-between">
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <FormControl variant="outlined" size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id="status-label">Status</InputLabel>
-                  <Select
-                    labelId="status-label"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    label="Status"
-                    IconComponent={FilterAltIcon}
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel id="assignee-label">Assignee</InputLabel>
-                  <Select
-                    labelId="assignee-label"
-                    value={assigneeFilter}
-                    onChange={(e) => setAssigneeFilter(e.target.value)}
-                    label="Assignee"
-                    IconComponent={PersonIcon}
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    {[...new Set(tasks.map((t) => t.userName))].map((name) => (
-                      <MenuItem key={name} value={name}>{name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-
-                <Tooltip title="Reset filters">
-                  <Button
-                    variant="outlined"
-                    startIcon={<ClearIcon />}
-                    onClick={() => {
-                      setStatusFilter("all");
-                      setAssigneeFilter("all");
-                      setSearchQuery("");
-                    }}
-                  >
-                    Reset
-                  </Button>
-                </Tooltip>
-
-                <Tooltip title="Export CSV">
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleExport}
-                  >
-                    Export
-                  </Button>
-                </Tooltip>
-              </Stack>
-            </Stack>
-
-            {filteredTasks.length === 0 ? (
-              <Typography textAlign="center" mt={3}>
-                No tasks found.
-              </Typography>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: "#f1f1f1" }}>
-                    <TableCell><strong>Task</strong></TableCell>
-                    <TableCell><strong>Description</strong></TableCell>
-                    <TableCell><strong>Assigned To</strong></TableCell>
-                    <TableCell><strong>Status</strong></TableCell>
-                    <TableCell><strong>Deadline</strong></TableCell>
-                    <TableCell><strong>Actions</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredTasks.map((task) => (
-                    <TableRow key={task._id} hover>
-                      <TableCell>{task.name}</TableCell>
-                      <TableCell>{task.description}</TableCell>
-                      <TableCell>{task.userName}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={task.completed ? "Completed" : "Pending"}
-                          color={task.completed ? "success" : "warning"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(task.deadline).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <Tooltip title="Edit Task">
-                            <IconButton color="primary" onClick={() => navigate(`/manager/create-task?tab=1&edit=${task._id}`)}>
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete Task">
-                            <IconButton color="error" onClick={() => {
-                              setSelectedTaskId(task._id);
-                              setConfirmOpen(true);
-                            }}>
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="View Discussion">
-                            <IconButton color="info" onClick={() => navigate(`/task/${task._id}/discussion`)}>
-                              <ChatBubbleOutlineIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Stack>
-        </Paper>
+        <TaskTable tasks = {tasks}/>
       )}
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
